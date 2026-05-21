@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMH Events – Job Brief Generator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f5f3; --surface: #ffffff; --surface2: #f0efed;
+    --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
+    --text: #1a1a1a; --text2: #555; --text3: #888; --accent: #1a1a1a;
+    --radius: 10px; --radius-lg: 14px;
+    --blue-bg: #e8f0fe; --blue-text: #1a56db;
+    --green-bg: #e3f5ec; --green-text: #0e6e3d;
+    --amber-bg: #fef3e2; --amber-text: #92600a;
+    --danger-bg: #fdecea; --danger-text: #b91c1c;
+    --success-bg: #e3f5ec; --success-text: #0e6e3d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a; --surface: #242424; --surface2: #2e2e2e;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+      --text: #f0f0f0; --text2: #aaa; --text3: #666; --accent: #f0f0f0;
+      --blue-bg: #1e3a5f; --blue-text: #93c5fd;
+      --green-bg: #14532d; --green-text: #86efac;
+      --amber-bg: #451a03; --amber-text: #fcd34d;
+      --danger-bg: #450a0a; --danger-text: #fca5a5;
+      --success-bg: #14532d; --success-text: #86efac;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 1.5rem 1rem; }
+  .wrapper { max-width: 680px; margin: 0 auto; }
+  .header { display: flex; align-items: center; gap: 12px; margin-bottom: 2rem; padding-bottom: 1.25rem; border-bottom: 0.5px solid var(--border); }
+  .logo { width: 40px; height: 40px; background: var(--accent); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .logo span { color: #fff; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; }
+  @media (prefers-color-scheme: dark) { .logo span { color: #1a1a1a; } .logo { background: #f0f0f0; } }
+  .header-text h1 { font-size: 18px; font-weight: 600; }
+  .header-text p { font-size: 13px; color: var(--text2); margin-top: 2px; }
+  .section-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .person-filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .chip { font-size: 12px; padding: 5px 13px; border-radius: 20px; border: 0.5px solid var(--border2); background: var(--surface); color: var(--text2); cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .chip:hover { border-color: var(--accent); color: var(--text); }
+  .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  @media (prefers-color-scheme: dark) { .chip.active { color: #1a1a1a; } }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  select, button, input { font-family: inherit; font-size: 13px; padding: 8px 12px; border-radius: var(--radius); border: 0.5px solid var(--border2); background: var(--surface); color: var(--text); cursor: pointer; outline: none; transition: all 0.15s; }
+  select { flex: 1; min-width: 160px; }
+  select:focus, input:focus { border-color: var(--accent); }
+  input { cursor: text; width: 100%; }
+  button { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  button:hover { background: var(--surface2); }
+  button:active { transform: scale(0.98); }
+  .jobs-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.5rem; }
+  .job-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 13px 16px; cursor: pointer; transition: border-color 0.15s; }
+  .job-card:hover { border-color: var(--border2); }
+  .job-card.selected { border: 1.5px solid var(--accent); }
+  .job-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+  .job-name { font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .badges { display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+  .badge-delivery { background: var(--blue-bg); color: var(--blue-text); }
+  .badge-collection { background: var(--green-bg); color: var(--green-text); }
+  .badge-multi { background: var(--amber-bg); color: var(--amber-text); }
+  .job-meta { font-size: 12px; color: var(--text2); display: flex; gap: 12px; flex-wrap: wrap; }
+  .job-meta span { display: flex; align-items: center; gap: 4px; }
+  .preview-section { margin-top: 1.5rem; }
+  .preview-box { background: var(--surface2); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+  .preview-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .preview-label { font-size: 13px; font-weight: 500; color: var(--text2); }
+  .preview-text { font-family: 'Courier New', monospace; font-size: 12.5px; color: var(--text); line-height: 1.65; white-space: pre-wrap; background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px; max-height: 380px; overflow-y: auto; }
+  .actions { display: flex; gap: 8px; }
+  .actions button { flex: 1; justify-content: center; font-size: 13px; padding: 10px; }
+  .btn-whatsapp { background: #25D366 !important; color: #fff !important; border-color: #25D366 !important; font-weight: 500; }
+  .btn-whatsapp:hover { background: #1cb85a !important; }
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 13px; }
+  .empty svg { display: block; margin: 0 auto 10px; opacity: 0.4; }
+  .loading { text-align: center; padding: 2.5rem; color: var(--text3); font-size: 13px; }
+  .loading .spinner { width: 20px; height: 20px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-msg { background: var(--danger-bg); color: var(--danger-text); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; margin-bottom: 1rem; border: 0.5px solid rgba(185,28,28,0.2); }
+  .copied-msg { font-size: 12px; color: var(--success-text); display: none; align-items: center; gap: 4px; }
+  .copied-msg.show { display: flex; }
+  svg.icon { width: 14px; height: 14px; vertical-align: -2px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* API key screen */
+  #key-screen { display: flex; align-items: center; justify-content: center; min-height: 80vh; }
+  .key-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; max-width: 420px; width: 100%; }
+  .key-card .logo { margin: 0 auto 1.25rem; }
+  .key-card h2 { font-size: 16px; font-weight: 600; text-align: center; margin-bottom: 6px; }
+  .key-card p { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 1.5rem; line-height: 1.6; }
+  .key-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .key-input-row input { flex: 1; font-size: 13px; letter-spacing: 0.5px; }
+  .key-hint { font-size: 12px; color: var(--text3); text-align: center; margin-top: 8px; }
+  .key-hint a { color: var(--text2); }
+  .key-error { font-size: 12px; color: var(--danger-text); margin-top: 8px; text-align: center; display: none; }
+  .key-status { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding: 8px 12px; background: var(--surface2); border-radius: var(--radius); font-size: 12px; }
+  .key-status span { color: var(--text2); }
+  .key-status button { font-size: 11px; padding: 4px 10px; color: var(--danger-text); border-color: var(--danger-text); }
+  .key-status button:hover { background: var(--danger-bg); }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- API Key Screen -->
+  <div id="key-screen">
+    <div class="key-card">
+      <div class="logo" style="width:44px;height:44px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+        <span style="color:#fff;font-size:10px;font-weight:600;letter-spacing:0.5px;">SMH</span>
+      </div>
+      <h2>Enter your API key</h2>
+      <p>Your Anthropic API key is stored only in your browser session — it's never saved to disk or sent anywhere except the Anthropic API.</p>
+      <div class="key-input-row">
+        <input type="password" id="api-key-input" placeholder="sk-ant-..." onkeydown="if(event.key==='Enter') saveKey()" />
+        <button onclick="saveKey()">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Save
+        </button>
+      </div>
+      <div class="key-error" id="key-error">Invalid key — must start with sk-ant-</div>
+      <div class="key-hint">Find your key at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a></div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app-screen" style="display:none;">
+
+    <div class="header">
+      <div class="logo"><span>SMH</span></div>
+      <div class="header-text">
+        <h1>Job brief generator</h1>
+        <p>Select a job to generate a WhatsApp message</p>
+      </div>
+    </div>
+
+    <div class="key-status">
+      <span>🔑 API key active</span>
+      <button onclick="clearKey()">Change key</button>
+    </div>
+
+    <div id="error-container"></div>
+
+    <div class="section-label">Filter by person</div>
+    <div class="person-filter">
+      <button class="chip active" data-person="all" onclick="filterByPerson('all')">Everyone</button>
+      <button class="chip" data-person="Rodrigo Lozeski" onclick="filterByPerson('Rodrigo Lozeski')">Rodrigo Lozeski</button>
+      <button class="chip" data-person="James Jee" onclick="filterByPerson('James Jee')">James Jee</button>
+      <button class="chip" data-person="Shaun Morgan" onclick="filterByPerson('Shaun Morgan')">Shaun Morgan</button>
+      <button class="chip" data-person="Dan Burden" onclick="filterByPerson('Dan Burden')">Dan Burden</button>
+      <button class="chip" data-person="Dan Soto" onclick="filterByPerson('Dan Soto')">Dan Soto</button>
+    </div>
+
+    <div class="filter-row">
+      <select id="date-filter" onchange="renderJobs()">
+        <option value="upcoming">Upcoming jobs</option>
+        <option value="all">All jobs</option>
+      </select>
+      <button onclick="loadJobs()">
+        <svg class="icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Refresh
+      </button>
+    </div>
+
+    <div class="section-label">Jobs</div>
+    <div id="jobs-list" class="jobs-list">
+      <div class="loading"><div class="spinner"></div>Loading jobs from Notion...</div>
+    </div>
+
+    <div id="preview-section" class="preview-section" style="display:none;">
+      <div class="section-label">Message preview</div>
+      <div class="preview-box">
+        <div class="preview-header">
+          <span class="preview-label" id="preview-label">Ready to send</span>
+          <span class="copied-msg" id="copied-msg">
+            <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Copied!
+          </span>
+        </div>
+        <div class="preview-text" id="preview-text"></div>
+      </div>
+      <div class="actions">
+        <button onclick="copyMessage()">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy message
+        </button>
+        <button class="btn-whatsapp" onclick="openWhatsApp()">
+          <svg class="icon" viewBox="0 0 24 24" style="stroke:#fff"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          Open in WhatsApp
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const NOTION_DB_VIEW = 'https://www.notion.so/smhevents/366a3d9cc51680788938f09f9f27fb9c?v=366a3d9cc51680d488bb000ccd43c54c';
+let allJobs = [], activePerson = 'all', currentMessage = '', groupedJobs = {};
+let apiKey = '';
+
+function saveKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val.startsWith('sk-ant-')) {
+    document.getElementById('key-error').style.display = 'block';
+    return;
+  }
+  apiKey = val;
+  sessionStorage.setItem('smh_api_key', val);
+  document.getElementById('key-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  loadJobs();
+}
+
+function clearKey() {
+  sessionStorage.removeItem('smh_api_key');
+  apiKey = '';
+  document.getElementById('api-key-input').value = '';
+  document.getElementById('key-error').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('key-screen').style.display = 'flex';
+}
+
+function toBST(iso) { if (!iso) return null; return new Date(new Date(iso).getTime() + 3600000); }
+function fmtTime(iso) { if (!iso) return 'TBC'; return toBST(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }); }
+function fmtDate(iso) { if (!iso) return 'TBC'; return toBST(iso).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+function fmtDateShort(iso) { if (!iso) return ''; return toBST(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+function dateKey(iso) { if (!iso) return ''; return toBST(iso).toISOString().slice(0, 10); }
+function parseArr(v) { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v); } catch { return []; } }
+function personInJob(job, person) { return [...parseArr(job.AssignedDrivers), ...parseArr(job.AssignedCrew)].includes(person); }
+
+async function loadJobs() {
+  document.getElementById('jobs-list').innerHTML = '<div class="loading"><div class="spinner"></div>Loading jobs from Notion...</div>';
+  document.getElementById('preview-section').style.display = 'none';
+  document.getElementById('error-container').innerHTML = '';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'mcp-client-2025-04-04' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        mcp_servers: [{ type: 'url', url: 'https://mcp.notion.com/mcp', name: 'notion' }],
+        system: 'You are a data retrieval assistant. Query the Notion Daily Schedule database at this view URL: ' + NOTION_DB_VIEW + '. Return ALL entries as a raw JSON array only — no markdown, no explanation, no backticks. Each object must have these exact keys: EventName, ProjectNumber, EventLocation, DeliveryCollection, DepartureTime, OnSiteTime, TargetCompletionTime, ReturnTime, EquipmentList, AssignedDrivers, AssignedCrew, AssignedVehicles, Notes, Status. Mappings: DepartureTime="date:Departure Time:start", OnSiteTime="date:Date & On-Site Time:start", TargetCompletionTime="date:Target Completion Time:start", ReturnTime="date:Return Time:start". AssignedDrivers and AssignedCrew as JSON array strings.',
+        messages: [{ role: 'user', content: 'Retrieve all entries from the Daily Schedule Notion database and return as a JSON array.' }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    allJobs = JSON.parse(clean);
+    renderJobs();
+  } catch(e) {
+    document.getElementById('error-container').innerHTML = '<div class="error-msg">⚠️ Failed to load jobs: ' + e.message + '. Check your API key and try refreshing.</div>';
+    document.getElementById('jobs-list').innerHTML = '<div class="empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>No jobs loaded</div>';
+  }
+}
+
+function renderJobs() {
+  const upcoming = document.getElementById('date-filter').value === 'upcoming';
+  const now = new Date();
+  let filtered = allJobs.filter(job => {
+    if (upcoming && new Date(job.OnSiteTime) < now) return false;
+    if (activePerson !== 'all' && !personInJob(job, activePerson)) return false;
+    return true;
+  });
+  filtered.sort((a, b) => new Date(a.OnSiteTime) - new Date(b.OnSiteTime));
+  groupedJobs = {};
+  filtered.forEach(job => {
+    const k = dateKey(job.OnSiteTime);
+    if (!groupedJobs[k]) groupedJobs[k] = [];
+    groupedJobs[k].push(job);
+  });
+  if (!filtered.length) {
+    document.getElementById('jobs-list').innerHTML = '<div class="empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>No jobs found</div>';
+    return;
+  }
+  let html = '';
+  Object.entries(groupedJobs).forEach(([dk, jobs]) => {
+    const multi = jobs.length > 1;
+    jobs.forEach((job, i) => {
+      const drivers = parseArr(job.AssignedDrivers);
+      const crew = parseArr(job.AssignedCrew);
+      const type = job.DeliveryCollection || '';
+      const badgeClass = type === 'Delivery' ? 'badge-delivery' : 'badge-collection';
+      html += `<div class="job-card" onclick="selectGroup('${dk}')" data-date="${dk}">
+        <div class="job-card-top">
+          <span class="job-name">${job.EventName || 'Unnamed job'}</span>
+          <div class="badges">
+            ${type ? `<span class="badge ${badgeClass}">${type}</span>` : ''}
+            ${multi && i === 0 ? '<span class="badge badge-multi">Multi-job day</span>' : ''}
+          </div>
+        </div>
+        <div class="job-meta">
+          <span><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${fmtDateShort(job.OnSiteTime)}</span>
+          <span><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>On-site ${fmtTime(job.OnSiteTime)}</span>
+          ${drivers.length ? `<span><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>${drivers.join(', ')}</span>` : ''}
+          ${crew.length ? `<span><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>${crew.join(', ')}</span>` : ''}
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('jobs-list').innerHTML = html;
+}
+
+function selectGroup(dk) {
+  document.querySelectorAll('.job-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll(`[data-date="${dk}"]`).forEach(c => c.classList.add('selected'));
+  generateMessage(groupedJobs[dk]);
+}
+
+function generateMessage(jobs) {
+  jobs.sort((a, b) => new Date(a.OnSiteTime) - new Date(b.OnSiteTime));
+  const multi = jobs.length > 1;
+  const first = jobs[0];
+  const allDrivers = [...new Set(jobs.flatMap(j => parseArr(j.AssignedDrivers)))];
+  const allCrew = [...new Set(jobs.flatMap(j => parseArr(j.AssignedCrew)))];
+  const allVehicles = [...new Set(jobs.flatMap(j => parseArr(j.AssignedVehicles)))];
+  let msg = '';
+  if (multi) {
+    msg += `🚛 SMH Events – Day Brief\n\n`;
+    msg += activePerson !== 'all' ? `👷 ${activePerson} — ${fmtDate(first.OnSiteTime)}\n\n` : `📅 ${fmtDate(first.OnSiteTime)}\n\n`;
+    jobs.forEach((job, i) => {
+      const equip = (job.EquipmentList || '').split(/\n|,/).map(e => e.trim()).filter(Boolean);
+      msg += `──────────────────\n`;
+      msg += `Job ${i + 1} of ${jobs.length} — ${job.EventName}\n`;
+      if (job.ProjectNumber) msg += `📁 Project No: ${job.ProjectNumber}\n`;
+      msg += `📍 ${job.EventLocation || 'TBC'}\n\n`;
+      msg += `🕐 Timings\n`;
+      if (job.DepartureTime) msg += `Departure from warehouse: ${fmtTime(job.DepartureTime)}\n`;
+      msg += `On-site: ${fmtTime(job.OnSiteTime)}\n`;
+      msg += `Target completion: ${fmtTime(job.TargetCompletionTime)}\n`;
+      if (job.ReturnTime && i === jobs.length - 1) msg += `Return to warehouse: ${fmtTime(job.ReturnTime)}\n`;
+      if (equip.length) { msg += `\n📦 Equipment\n`; equip.forEach(e => msg += `• ${e}\n`); }
+      if (job.Notes) msg += `\n📝 Notes: ${job.Notes}\n`;
+      msg += '\n';
+    });
+    msg += `──────────────────\n`;
+    if (allVehicles.length) msg += `🚐 Vehicle(s): ${allVehicles.join(', ')}\n`;
+    if (allDrivers.length) msg += `👤 Driver(s): ${allDrivers.join(', ')}\n`;
+    if (allCrew.length) msg += `👷 Crew: ${allCrew.join(', ')}\n`;
+  } else {
+    const job = jobs[0];
+    const drivers = parseArr(job.AssignedDrivers);
+    const crew = parseArr(job.AssignedCrew);
+    const vehicles = parseArr(job.AssignedVehicles);
+    const equip = (job.EquipmentList || '').split(/\n|,/).map(e => e.trim()).filter(Boolean);
+    msg += `🚛 SMH Events – Job Brief\n\n`;
+    msg += `📋 ${job.EventName}\n`;
+    if (job.ProjectNumber) msg += `📁 Project No: ${job.ProjectNumber}\n`;
+    msg += `📅 ${fmtDate(job.OnSiteTime)}\n\n`;
+    msg += `📍 Location\n${job.EventLocation || 'TBC'}\n\n`;
+    msg += `🕐 Timings\n`;
+    if (job.DepartureTime) msg += `Departure from warehouse: ${fmtTime(job.DepartureTime)}\n`;
+    msg += `On-site: ${fmtTime(job.OnSiteTime)}\n`;
+    msg += `Target completion: ${fmtTime(job.TargetCompletionTime)}\n`;
+    if (job.ReturnTime) msg += `Return to warehouse: ${fmtTime(job.ReturnTime)}\n`;
+    msg += '\n';
+    if (vehicles.length) msg += `🚐 Vehicle(s): ${vehicles.join(', ')}\n`;
+    if (drivers.length) msg += `👤 Driver(s): ${drivers.join(', ')}\n`;
+    if (crew.length) msg += `👷 Crew: ${crew.join(', ')}\n`;
+    if (equip.length) { msg += `\n📦 Equipment\n`; equip.forEach(e => msg += `• ${e}\n`); }
+    msg += `\n📝 Notes: ${job.Notes || 'None'}`;
+  }
+  currentMessage = msg;
+  document.getElementById('preview-text').textContent = msg;
+  document.getElementById('preview-label').textContent = multi
+    ? `Combined brief — ${jobs.length} jobs on ${fmtDateShort(first.OnSiteTime)}`
+    : `${first.DeliveryCollection || 'Job'} brief — ${fmtDateShort(first.OnSiteTime)}`;
+  document.getElementById('preview-section').style.display = 'block';
+  document.getElementById('copied-msg').classList.remove('show');
+}
+
+function filterByPerson(person) {
+  activePerson = person;
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.person === person));
+  document.getElementById('preview-section').style.display = 'none';
+  renderJobs();
+}
+
+function copyMessage() {
+  if (!currentMessage) return;
+  navigator.clipboard.writeText(currentMessage).then(() => {
+    const el = document.getElementById('copied-msg');
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2500);
+  });
+}
+
+function openWhatsApp() {
+  if (!currentMessage) return;
+  window.open('https://wa.me/?text=' + encodeURIComponent(currentMessage), '_blank');
+}
+
+// Check session on load
+const stored = sessionStorage.getItem('smh_api_key');
+if (stored && stored.startsWith('sk-ant-')) {
+  apiKey = stored;
+  document.getElementById('key-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  loadJobs();
+}
+</script>
+</body>
+</html>
